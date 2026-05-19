@@ -3,7 +3,7 @@ from collections import deque
 
 app = Flask(__name__)
 
-queue = deque()
+queue = deque()  # now stores dicts instead of strings
 seen = set()
 gift_queue = deque()
 tiktok_to_roblox = {}
@@ -15,7 +15,7 @@ def add_username():
     tiktok = data.get('tiktok', '').strip()
     if username and username.lower() not in seen:
         seen.add(username.lower())
-        queue.append(username)
+        queue.append({'username': username, 'tiktok': tiktok})
         if tiktok:
             tiktok_to_roblox[tiktok.lower()] = username
     return jsonify({'ok': True})
@@ -23,14 +23,14 @@ def add_username():
 @app.route('/next', methods=['GET'])
 def next_username():
     if queue:
-        username = queue.popleft()
-        seen.discard(username.lower())
-        return jsonify({'username': username})
-    return jsonify({'username': None})
+        entry = queue.popleft()
+        seen.discard(entry['username'].lower())
+        return jsonify({'username': entry['username'], 'tiktok': entry.get('tiktok', '')})
+    return jsonify({'username': None, 'tiktok': None})
 
 @app.route('/queue', methods=['GET'])
 def get_queue():
-    return jsonify({'queue': list(queue)})
+    return jsonify({'queue': [entry['username'] for entry in queue]})
 
 @app.route('/gift', methods=['POST'])
 def add_gift():
@@ -65,9 +65,10 @@ def next_gift():
 def skip_queue():
     data = request.json
     username = data.get('username', '').strip()
+    tiktok = data.get('tiktok', '').strip()
     if username and username.lower() not in seen:
         seen.add(username.lower())
-        queue.appendleft(username)
+        queue.appendleft({'username': username, 'tiktok': tiktok})
     return jsonify({'ok': True})
 
 if __name__ == '__main__':
