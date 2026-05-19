@@ -24,11 +24,15 @@ def get_tier(gift_name):
 async def on_comment(event: CommentEvent):
     msg = event.comment.strip()
     if msg.startswith("!"):
-        username = msg[1:].strip()
-        if username:
+        roblox_username = msg[1:].strip()
+        tiktok_nickname = event.user.nickname  # their TikTok display name
+        if roblox_username:
             try:
-                requests.post(f"{RENDER_URL}/add", json={"username": username})
-                print(f"Added to queue: {username}")
+                requests.post(f"{RENDER_URL}/add", json={
+                    "username": roblox_username,
+                    "tiktok": tiktok_nickname
+                })
+                print(f"Added: {roblox_username} (TikTok: {tiktok_nickname})")
             except:
                 print("Failed to send to relay")
 

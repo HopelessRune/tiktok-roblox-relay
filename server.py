@@ -7,13 +7,18 @@ queue = deque()
 seen = set()
 gift_queue = deque()
 
+tiktok_to_roblox = {}  # tiktok nickname → roblox username
+
 @app.route('/add', methods=['POST'])
 def add_username():
     data = request.json
     username = data.get('username', '').strip()
+    tiktok = data.get('tiktok', '').strip()
     if username and username.lower() not in seen:
         seen.add(username.lower())
         queue.append(username)
+        if tiktok:
+            tiktok_to_roblox[tiktok.lower()] = username
     return jsonify({'ok': True})
 
 @app.route('/next', methods=['GET'])
@@ -31,8 +36,11 @@ def get_queue():
 @app.route('/gift', methods=['POST'])
 def add_gift():
     data = request.json
+    tiktok_name = data.get('username', '')
+    roblox_name = tiktok_to_roblox.get(tiktok_name.lower(), None)
     gift_queue.append({
-        'username': data.get('username', ''),
+        'username': tiktok_name,
+        'roblox_username': roblox_name or '',
         'gift': data.get('gift', ''),
         'emoji': data.get('emoji', '🎁'),
         'tier': data.get('tier', 'rose')
