@@ -1,23 +1,26 @@
 import requests
 from TikTokLive import TikTokLiveClient
 from TikTokLive.events import CommentEvent, GiftEvent
+import time
 
 RENDER_URL = "https://tiktok-roblox-relay.onrender.com"
 client = TikTokLiveClient(unique_id="runeless")
 
-GIFT_TIERS = {
-    "rose": {"tier": "rose", "emoji": "🌹"},
-    "gift box": {"tier": "giftbox", "emoji": "🎁"},
+# Special tiers for big gifts that trigger camera events
+SPECIAL_TIERS = {
     "lion": {"tier": "lion", "emoji": "🦁"},
     "universe": {"tier": "universe", "emoji": "🌋"},
+    "gift box": {"tier": "giftbox", "emoji": "🎁"},
+    "rose": {"tier": "rose", "emoji": "🌹"},
 }
 
 def get_tier(gift_name):
     gift_lower = gift_name.lower()
-    for key, value in GIFT_TIERS.items():
+    for key, value in SPECIAL_TIERS.items():
         if key in gift_lower:
             return value
-    return {"tier": "rose", "emoji": "🎁"}
+    # Everything else still shows a notification but no special camera event
+    return {"tier": "gift", "emoji": "🎁"}
 
 @client.on(CommentEvent)
 async def on_comment(event: CommentEvent):
@@ -37,16 +40,13 @@ async def on_comment(event: CommentEvent):
 
 @client.on(GiftEvent)
 async def on_gift(event: GiftEvent):
-    if event.gift.streakable and not event.gift.streaked:
-        return
-
-    sender = event.user.nickname
-    gift_name = event.gift.name
-    tier_info = get_tier(gift_name)
-
-    print(f"Gift: {tier_info['emoji']} {gift_name} from {sender}")
-
     try:
+        sender = event.user.nickname
+        gift_name = event.gift.name
+        tier_info = get_tier(gift_name)
+
+        print(f"Gift: {tier_info['emoji']} {gift_name} from {sender}")
+
         requests.post(f"{RENDER_URL}/gift", json={
             "username": sender,
             "gift": gift_name,
@@ -54,17 +54,19 @@ async def on_gift(event: GiftEvent):
             "tier": tier_info["tier"]
         })
 
-
-    except:
-        print("Failed to send gift to relay")
+    except Exception as e:
+        print(f"Gift error: {e}")
 
 if __name__ == "__main__":
     while True:
         try:
             print("Connecting to TikTok Live...")
             client.run()
+        except KeyboardInterrupt:
+            # Ctrl+C pressed, exit cleanly
+            print("Stopped.")
+            break
         except Exception as e:
             print(f"Disconnected: {e}")
             print("Reconnecting in 5 seconds...")
-            import time
             time.sleep(5)
