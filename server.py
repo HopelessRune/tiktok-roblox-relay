@@ -4,9 +4,9 @@ from collections import deque
 app = Flask(__name__)
 
 queue = deque()
-seen = set()  # prevents same username being added twice
+seen = set()
+gift_queue = deque()
 
-# TikTok listener runs separately, posts to this endpoint
 @app.route('/add', methods=['POST'])
 def add_username():
     data = request.json
@@ -16,7 +16,6 @@ def add_username():
         queue.append(username)
     return jsonify({'ok': True})
 
-# Roblox polls this every second
 @app.route('/next', methods=['GET'])
 def next_username():
     if queue:
@@ -25,10 +24,35 @@ def next_username():
         return jsonify({'username': username})
     return jsonify({'username': None})
 
-# Roblox fetches this for the waitlist UI
 @app.route('/queue', methods=['GET'])
 def get_queue():
     return jsonify({'queue': list(queue)})
+
+@app.route('/gift', methods=['POST'])
+def add_gift():
+    data = request.json
+    gift_queue.append({
+        'username': data.get('username', ''),
+        'gift': data.get('gift', ''),
+        'emoji': data.get('emoji', '🎁'),
+        'tier': data.get('tier', 'rose')
+    })
+    return jsonify({'ok': True})
+
+@app.route('/nextgift', methods=['GET'])
+def next_gift():
+    if gift_queue:
+        return jsonify({'gift': gift_queue.popleft()})
+    return jsonify({'gift': None})
+
+@app.route('/skipqueue', methods=['POST'])
+def skip_queue():
+    data = request.json
+    username = data.get('username', '').strip()
+    if username and username.lower() not in seen:
+        seen.add(username.lower())
+        queue.appendleft(username)  # appendleft puts them at the FRONT
+    return jsonify({'ok': True})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
