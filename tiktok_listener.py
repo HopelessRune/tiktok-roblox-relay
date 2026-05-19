@@ -5,7 +5,6 @@ from TikTokLive.events import CommentEvent, GiftEvent
 RENDER_URL = "https://tiktok-roblox-relay.onrender.com"
 client = TikTokLiveClient(unique_id="runeless")
 
-# Map gift names to tiers
 GIFT_TIERS = {
     "rose": {"tier": "rose", "emoji": "🌹"},
     "gift box": {"tier": "giftbox", "emoji": "🎁"},
@@ -25,7 +24,7 @@ async def on_comment(event: CommentEvent):
     msg = event.comment.strip()
     if msg.startswith("!"):
         roblox_username = msg[1:].strip()
-        tiktok_nickname = event.user.nickname  # their TikTok display name
+        tiktok_nickname = event.user.nickname
         if roblox_username:
             try:
                 requests.post(f"{RENDER_URL}/add", json={
@@ -38,16 +37,15 @@ async def on_comment(event: CommentEvent):
 
 @client.on(GiftEvent)
 async def on_gift(event: GiftEvent):
-    # Only trigger on streak end to avoid spam
     if event.gift.streakable and not event.gift.streaked:
         return
-    
+
     sender = event.user.nickname
     gift_name = event.gift.name
     tier_info = get_tier(gift_name)
-    
+
     print(f"Gift: {tier_info['emoji']} {gift_name} from {sender}")
-    
+
     try:
         requests.post(f"{RENDER_URL}/gift", json={
             "username": sender,
@@ -55,11 +53,10 @@ async def on_gift(event: GiftEvent):
             "emoji": tier_info["emoji"],
             "tier": tier_info["tier"]
         })
-        
-        # Rose also skips the queue
+
         if tier_info["tier"] == "rose":
             requests.post(f"{RENDER_URL}/skipqueue", json={"username": sender})
-            
+
     except:
         print("Failed to send gift to relay")
 

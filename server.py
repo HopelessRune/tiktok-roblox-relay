@@ -6,8 +6,7 @@ app = Flask(__name__)
 queue = deque()
 seen = set()
 gift_queue = deque()
-
-tiktok_to_roblox = {}  # tiktok nickname → roblox username
+tiktok_to_roblox = {}
 
 @app.route('/add', methods=['POST'])
 def add_username():
@@ -59,7 +58,7 @@ def skip_queue():
     username = data.get('username', '').strip()
     if username and username.lower() not in seen:
         seen.add(username.lower())
-        queue.appendleft(username)  # appendleft puts them at the FRONT
+        queue.appendleft(username)
     return jsonify({'ok': True})
 
 if __name__ == '__main__':
