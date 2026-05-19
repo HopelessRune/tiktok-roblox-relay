@@ -54,8 +54,6 @@ async def on_gift(event: GiftEvent):
             "tier": tier_info["tier"]
         })
 
-        if tier_info["tier"] == "rose":
-            requests.post(f"{RENDER_URL}/skipqueue", json={"username": sender})
 
     except:
         print("Failed to send gift to relay")

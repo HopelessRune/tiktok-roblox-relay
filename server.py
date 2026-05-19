@@ -37,13 +37,22 @@ def add_gift():
     data = request.json
     tiktok_name = data.get('username', '')
     roblox_name = tiktok_to_roblox.get(tiktok_name.lower(), None)
+    tier = data.get('tier', 'rose')
+    
     gift_queue.append({
         'username': tiktok_name,
         'roblox_username': roblox_name or '',
         'gift': data.get('gift', ''),
         'emoji': data.get('emoji', '🎁'),
-        'tier': data.get('tier', 'rose')
+        'tier': tier
     })
+    
+    # Handle rose skip using roblox name not tiktok name
+    if tier == 'rose' and roblox_name:
+        if roblox_name.lower() not in seen:
+            seen.add(roblox_name.lower())
+        queue.appendleft(roblox_name)
+    
     return jsonify({'ok': True})
 
 @app.route('/nextgift', methods=['GET'])
