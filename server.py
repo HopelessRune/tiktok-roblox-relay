@@ -3,7 +3,7 @@ from collections import deque
 
 app = Flask(__name__)
 
-queue = deque()  # now stores dicts instead of strings
+queue = deque()
 seen = set()
 gift_queue = deque()
 tiktok_to_roblox = {}
@@ -24,21 +24,34 @@ def add_username():
 def next_username():
     if queue:
         entry = queue.popleft()
-        seen.discard(entry['username'].lower())
-        return jsonify({'username': entry['username'], 'tiktok': entry.get('tiktok', '')})
+        # handle both dict and string entries safely
+        if isinstance(entry, dict):
+            username = entry['username']
+            tiktok = entry.get('tiktok', '')
+        else:
+            username = entry
+            tiktok = ''
+        seen.discard(username.lower())
+        return jsonify({'username': username, 'tiktok': tiktok})
     return jsonify({'username': None, 'tiktok': None})
 
 @app.route('/queue', methods=['GET'])
 def get_queue():
-    return jsonify({'queue': [entry['username'] for entry in queue]})
+    result = []
+    for entry in queue:
+        if isinstance(entry, dict):
+            result.append(entry['username'])
+        else:
+            result.append(entry)
+    return jsonify({'queue': result})
 
 @app.route('/gift', methods=['POST'])
 def add_gift():
     data = request.json
     tiktok_name = data.get('username', '')
     roblox_name = tiktok_to_roblox.get(tiktok_name.lower(), None)
-    tier = data.get('tier', 'rose')
-    
+    tier = data.get('tier', 'gift')
+
     gift_queue.append({
         'username': tiktok_name,
         'roblox_username': roblox_name or '',
@@ -46,13 +59,13 @@ def add_gift():
         'emoji': data.get('emoji', '🎁'),
         'tier': tier
     })
-    
-    # Handle rose skip using roblox name not tiktok name
+
+    # Rose skip — append dict not string
     if tier == 'rose' and roblox_name:
         if roblox_name.lower() not in seen:
             seen.add(roblox_name.lower())
-        queue.appendleft(roblox_name)
-    
+            queue.appendleft({'username': roblox_name, 'tiktok': tiktok_name})
+
     return jsonify({'ok': True})
 
 @app.route('/nextgift', methods=['GET'])

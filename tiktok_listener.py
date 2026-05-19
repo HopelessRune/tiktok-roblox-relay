@@ -1,12 +1,12 @@
 import requests
+import threading
+import time
 from TikTokLive import TikTokLiveClient
 from TikTokLive.events import CommentEvent, GiftEvent
-import time
 
 RENDER_URL = "https://tiktok-roblox-relay.onrender.com"
 client = TikTokLiveClient(unique_id="runeless")
 
-# Special tiers for big gifts that trigger camera events
 SPECIAL_TIERS = {
     "lion": {"tier": "lion", "emoji": "🦁"},
     "universe": {"tier": "universe", "emoji": "🌋"},
@@ -19,8 +19,16 @@ def get_tier(gift_name):
     for key, value in SPECIAL_TIERS.items():
         if key in gift_lower:
             return value
-    # Everything else still shows a notification but no special camera event
     return {"tier": "gift", "emoji": "🎁"}
+
+def keep_alive():
+    while True:
+        try:
+            requests.get(f"{RENDER_URL}/queue")
+            print("Pinged server to keep alive")
+        except:
+            pass
+        time.sleep(600)
 
 @client.on(CommentEvent)
 async def on_comment(event: CommentEvent):
@@ -57,13 +65,14 @@ async def on_gift(event: GiftEvent):
     except Exception as e:
         print(f"Gift error: {e}")
 
+threading.Thread(target=keep_alive, daemon=True).start()
+
 if __name__ == "__main__":
     while True:
         try:
             print("Connecting to TikTok Live...")
             client.run()
         except KeyboardInterrupt:
-            # Ctrl+C pressed, exit cleanly
             print("Stopped.")
             break
         except Exception as e:
